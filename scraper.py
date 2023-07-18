@@ -6,7 +6,7 @@ from urllib import request
 from bs4 import BeautifulSoup
 
 from db.database import get_session
-from db.models.clients import Client
+from db.models import Company, Activity
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -19,22 +19,12 @@ def open_text_file(file_name: str) -> List[str]:
         return lines
 
 
-def save_main_page(url: str) -> NoReturn:
-    response = request.urlopen(url)
-    html = response.read()
-    html = str(html)
-    with open('test_page.html', 'w') as file:
-        file.write(str(html))
-        logger.info(f'Template file was created for: {url}')
-
-
 def clean_trash() -> NoReturn:
-    if os.path.exists('test_page.html'):
-        os.remove('test_page.html')
+    if os.path.exists('links.txt'):
         os.remove('links.txt')
-        logger.info("Files 'test_page.html' and 'links.txt' was deleted.")
+        logger.info("File 'links.txt' was deleted.")
     else:
-        logger.info("Files 'test_page.html' and 'links.txt' not exist")
+        logger.info("File 'links.txt' not exist")
 
 
 def find_links_on_page(url: str) -> int:
@@ -109,24 +99,28 @@ def collect_data(link_list: List) -> List[Dict]:
 
 
 def save_data_to_db(data_list: List[Dict]):
-    count = 1
-    clients = []
-
+    logger.info("Start: saving data to DB")
     for data in data_list:
-        client = Client(
+        activities = []
+        for activity_name in data['activity']:
+            activity = session.query(Activity).filter_by(name=activity_name).first()
+            if activity:
+                activities.append(activity)
+            else:
+                new_activity = Activity(name=activity_name)
+                activities.append(new_activity)
+                session.add(new_activity)
+        company = Company(
             name=data['name'],
             type=data['type'],
-            activity=data['activity'],
             address=data['address'],
-            phone=data['phones'],
-            email=data['emails'],
+            phone=', '.join(data['phones']) if data['phones'] else None,
+            email=', '.join(data['emails']) if data['emails'] else None,
             url=data['url'],
             description=data['description'],
         )
-        clients.append(client)
-        logger.info(f"added {count} records for saving")
-        count += 1
-    logger.info("Start: saving data to DB")
-    session.add_all(clients)
+        company.activities = activities
+        session.add(company)
+
     session.commit()
     logger.info("All data was saved to DB")

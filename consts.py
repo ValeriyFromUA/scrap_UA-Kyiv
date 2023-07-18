@@ -12,4 +12,4 @@ DB_URL = os.environ.get('DB_URL')
 TEST_DB_NAME = os.environ.get('TEST_DB_NAME')
 
 START_PAGE = 1
-LAST_PAGE = 800
+LAST_PAGE = 2
