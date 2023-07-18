@@ -2,6 +2,7 @@ import re
 from typing import Dict, List, NoReturn
 from urllib import request
 
+import requests
 from bs4 import BeautifulSoup
 
 from db.database import get_session
@@ -37,9 +38,8 @@ def find_all_links(first_page: int, last_page: int) -> NoReturn:
 
 
 def find_data_in_link(url: str) -> Dict:
-    response = request.urlopen(url)
-    page = response.read()
-    soup = BeautifulSoup(page, 'html.parser')
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'lxml')
     try:
         company_type = soup.find('h1').text.split(',')[1]
     except:
