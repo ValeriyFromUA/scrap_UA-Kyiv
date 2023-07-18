@@ -1,40 +1,15 @@
-import os
 import re
 from typing import Dict, List, NoReturn
 from urllib import request
 
+import requests
 from bs4 import BeautifulSoup
 
 from db.database import get_session
-from db.models.clients import Client
 from logger import get_logger
 
 logger = get_logger(__name__)
 session = get_session()
-
-
-def open_text_file(file_name: str) -> List[str]:
-    with open(file_name, 'r') as file:
-        lines = file.readlines()
-        return lines
-
-
-def save_main_page(url: str) -> NoReturn:
-    response = request.urlopen(url)
-    html = response.read()
-    html = str(html)
-    with open('test_page.html', 'w') as file:
-        file.write(str(html))
-        logger.info(f'Template file was created for: {url}')
-
-
-def clean_trash() -> NoReturn:
-    if os.path.exists('test_page.html'):
-        os.remove('test_page.html')
-        os.remove('links.txt')
-        logger.info("Files 'test_page.html' and 'links.txt' was deleted.")
-    else:
-        logger.info("Files 'test_page.html' and 'links.txt' not exist")
 
 
 def find_links_on_page(url: str) -> int:
@@ -63,9 +38,8 @@ def find_all_links(first_page: int, last_page: int) -> NoReturn:
 
 
 def find_data_in_link(url: str) -> Dict:
-    response = request.urlopen(url)
-    page = response.read()
-    soup = BeautifulSoup(page, 'html.parser')
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'lxml')
     try:
         company_type = soup.find('h1').text.split(',')[1]
     except:
@@ -106,27 +80,3 @@ def collect_data(link_list: List) -> List[Dict]:
             count += 1
     logger.info("All data was saved, you can save data to DB now...")
     return collected_data
-
-
-def save_data_to_db(data_list: List[Dict]):
-    count = 1
-    clients = []
-
-    for data in data_list:
-        client = Client(
-            name=data['name'],
-            type=data['type'],
-            activity=data['activity'],
-            address=data['address'],
-            phone=data['phones'],
-            email=data['emails'],
-            url=data['url'],
-            description=data['description'],
-        )
-        clients.append(client)
-        logger.info(f"added {count} records for saving")
-        count += 1
-    logger.info("Start: saving data to DB")
-    session.add_all(clients)
-    session.commit()
-    logger.info("All data was saved to DB")

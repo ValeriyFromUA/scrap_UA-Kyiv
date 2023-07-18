@@ -1,7 +1,8 @@
 from consts import LAST_PAGE, START_PAGE
 from db.models.base import create_models
-from scraper import (clean_trash, collect_data, find_all_links, open_text_file,
-                     save_data_to_db)
+from scraper.db_manager import save_data_to_db
+from scraper.scraper import collect_data, find_all_links
+from scraper.utils import clean_trash, open_text_file
 
 if __name__ == "__main__":
     create_models()
