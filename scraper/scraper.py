@@ -1,4 +1,3 @@
-import os
 import re
 from typing import Dict, List, NoReturn
 from urllib import request
@@ -6,25 +5,10 @@ from urllib import request
 from bs4 import BeautifulSoup
 
 from db.database import get_session
-from db.models import Company, Activity
 from logger import get_logger
 
 logger = get_logger(__name__)
 session = get_session()
-
-
-def open_text_file(file_name: str) -> List[str]:
-    with open(file_name, 'r') as file:
-        lines = file.readlines()
-        return lines
-
-
-def clean_trash() -> NoReturn:
-    if os.path.exists('links.txt'):
-        os.remove('links.txt')
-        logger.info("File 'links.txt' was deleted.")
-    else:
-        logger.info("File 'links.txt' not exist")
 
 
 def find_links_on_page(url: str) -> int:
@@ -96,31 +80,3 @@ def collect_data(link_list: List) -> List[Dict]:
             count += 1
     logger.info("All data was saved, you can save data to DB now...")
     return collected_data
-
-
-def save_data_to_db(data_list: List[Dict]):
-    logger.info("Start: saving data to DB")
-    for data in data_list:
-        activities = []
-        for activity_name in data['activity']:
-            activity = session.query(Activity).filter_by(name=activity_name).first()
-            if activity:
-                activities.append(activity)
-            else:
-                new_activity = Activity(name=activity_name)
-                activities.append(new_activity)
-                session.add(new_activity)
-        company = Company(
-            name=data['name'],
-            type=data['type'],
-            address=data['address'],
-            phone=', '.join(data['phones']) if data['phones'] else None,
-            email=', '.join(data['emails']) if data['emails'] else None,
-            url=data['url'],
-            description=data['description'],
-        )
-        company.activities = activities
-        session.add(company)
-
-    session.commit()
-    logger.info("All data was saved to DB")
